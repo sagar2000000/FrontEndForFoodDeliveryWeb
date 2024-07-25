@@ -1,5 +1,5 @@
 import { createContext, useEffect, useState } from "react";
-import { food_list } from "../assets/assets";
+
 export const StoreContext = createContext(null);
 import axios from "axios";
 function StoreContextProvider(props) {
@@ -8,16 +8,33 @@ function StoreContextProvider(props) {
   const [token, setToken] = useState("");
   const [food_list, setFoodList] = useState([]);
 
-  const addToCart = (itemId) => {
+  const addToCart = async (itemId) => {
     console.log(itemId);
     if (!cartItems[itemId]) {
       setCartItems((prev) => ({ ...prev, [itemId]: 1 }));
     } else {
       setCartItems((prev) => ({ ...prev, [itemId]: prev[itemId] + 1 }));
     }
+    if (token) {
+      await axios.post(
+        url+"/api/cart/add",
+        { itemId },
+        { headers: { token } }
+      );
+    }
   };
-  const removeFromCart = (itemId) => {
+
+
+  const removeFromCart = async (itemId) => {
     setCartItems((prev) => ({ ...prev, [itemId]: prev[itemId] - 1 }));
+
+    if (token) {
+      await axios.post(
+        url+"/api/cart/remove",
+        { itemId },
+        { headers: { token } }
+      );
+    }
   };
 
   const getTotalCartAmount = () => {
@@ -30,17 +47,32 @@ function StoreContextProvider(props) {
     }
     return totalAmount;
   };
+
   const fetchFoodList = async () => {
     const response = await axios.get(url+"/api/food/list");
-   console.log(response)
+    console.log(response);
     setFoodList(response.data.data);
   };
+
+  const loadCartData = async (token) => {
+    const response = await axios.post(url+"/api/cart/get",{},{headers:{token}});
+   const cartData=response.data.cartData
+
+    setCartItems(cartData);
+  };
+
+
   useEffect(() => {
     async function loadData() {
       await fetchFoodList();
-    }
-    if (localStorage.getItem("token")) {
-      setToken(localStorage.getItem("token"));
+      console.log("hellllllo")
+      if(localStorage.getItem("token")) {
+        console.log("hello")
+        setToken(localStorage.getItem("token"));
+        
+        console.log(localStorage.getItem("token"))
+        await loadCartData(localStorage.getItem("token"));
+      }
     }
     loadData();
   }, []);
